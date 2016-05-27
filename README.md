@@ -6,7 +6,7 @@ So far we've just added the AuthComponent class but more to come.
 ## Installation
 
 ```bash
-composer require rootwork/phalcon-toolbox
+composer require rootwork/phalcon-toolbox:dev-master
 ```
 
 ## Authorization Component
