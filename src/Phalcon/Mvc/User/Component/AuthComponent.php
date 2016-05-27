@@ -120,11 +120,25 @@ class AuthComponent extends Component implements MiddlewareInterface
     }
 
     /**
+     * Set the current session role.
+     *
+     * @param string $role
+     *
+     * @return $this
+     */
+    public function setRole($role)
+    {
+        $this->persistent->set('role', $role);
+
+        return $this;
+    }
+
+    /**
      * Get the current session role.
      *
      * @return string
      */
-    protected function getRole()
+    public function getRole()
     {
         if (!$this->persistent->get('role')) {
             $this->persistent->set('role', $this->defaultRole);
