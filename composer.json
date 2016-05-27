@@ -11,6 +11,10 @@
         }
     ],
     "require": {
+        "php": ">=5.4",
+        "ext-phalcon": ">=2.0.4"
+    },
+    "require-dev": {
         "phalcon/devtools": "^2.0",
         "phpunit/phpunit": "^5.3",
         "rootwork/phpunit-helpers": "dev-master"

@@ -3,6 +3,12 @@ A growing collection of useful Phalcon code
 
 So far we've just added the AuthComponent class but more to come.
 
+## Installation
+
+```bash
+composer require rootwork/phalcon-toolbox
+```
+
 ## Authorization Component
 
 ### Uses Phalcon\Acl, see acl.example.php.
