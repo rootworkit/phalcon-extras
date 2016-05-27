@@ -1,0 +1,25 @@
+{
+    "name": "rootwork/phalcon-toolbox",
+    "description": "Phalcon Toolbox",
+    "license": "BSD-3-Clause",
+    "keywords": ["rootwork", "phalcon", "library", "toolbox"],
+    "homepage": "https://github.com/rootworkit/phalcon-toolbox",
+    "authors": [
+        {
+            "name": "Mike Soule",
+            "email": "mike@rootwork.it"
+        }
+    ],
+    "require": {
+        "php": ">=5.4",
+        "ext-phalcon": ">=2.0.4"
+    },
+    "require-dev": {
+        "phalcon/devtools": "^2.0",
+        "phpunit/phpunit": "^5.3",
+        "rootwork/phpunit-helpers": "dev-master"
+    },
+    "autoload": {
+        "psr-4": { "Rootwork\\Phalcon\\": "src/Phalcon/" }
+    }
+}
