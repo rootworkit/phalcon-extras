@@ -1,8 +1,6 @@
 # phalcon-toolbox
 A growing collection of useful Phalcon code
 
-So far we've just added the AuthComponent class but more to come.
-
 ## Installation
 
 ```bash
