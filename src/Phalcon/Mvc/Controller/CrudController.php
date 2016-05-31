@@ -171,8 +171,6 @@ class CrudController extends Controller
      */
     public function saveAction($id = null)
     {
-        /** @var \Phalcon\Forms\Form $form */
-        $form           = new $this->{'formClass'}();
         $this->model    = new $this->{'modelClass'}();
         $controller     = $this->router->getControllerName();
         $indexUri       = "$controller/index";
@@ -191,10 +189,17 @@ class CrudController extends Controller
                 $this->flash->error($this->msgNotFoundId);
                 return $this->forward($indexUri);
             }
+
+            $form = new $this->{'formClass'}($this->model, ['edit' => true]);
+        } else {
+            $form = new $this->{'formClass'}(null, ['edit' => true]);
         }
 
-        $data = $this->request->getPost();
+        $this->view->form   = $form;
+        $this->view->model  = $this->model;
+        $data               = $this->request->getPost();
 
+        /** @var \Phalcon\Forms\Form $form */
         if (!$form->isValid($data, $this->model)) {
             foreach ($form->getMessages() as $message) {
                 $this->flash->error($message);
@@ -212,9 +217,6 @@ class CrudController extends Controller
         }
 
         $form->clear();
-        $this->view->form   = $form;
-        $this->view->model  = $this->model;
-
         $this->flash->success($this->msgSavedSuccess);
         return $this->forward($indexUri);
     }
