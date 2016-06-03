@@ -142,9 +142,10 @@ class CrudController extends Controller
     public function editAction($id = null)
     {
         if (!$this->request->isPost()) {
+            /** @var string|object $modelClass */
+            $modelClass     = $this->modelClass;
+
             if (!is_null($id)) {
-                /** @var string|object $modelClass */
-                $modelClass     = $this->modelClass;
                 $this->model    = $modelClass::findFirstById($id);
 
                 if (!$this->model) {
@@ -152,11 +153,14 @@ class CrudController extends Controller
                     return $this->forward($this->router->getControllerName() . '/index');
                 }
 
-                $this->view->form   = new $this->{'formClass'}($this->model, ['edit' => true]);
-                $this->view->model  = $this->model;
+                $form = new $this->{'formClass'}($this->model, ['edit' => true]);
             } else {
-                $this->view->form = new $this->{'formClass'}(null, ['edit' => true]);
+                $this->model    = new $modelClass();
+                $form           = new $this->{'formClass'}(null, ['edit' => true]);
             }
+
+            $this->view->form   = $form;
+            $this->view->model  = $this->model;
         }
 
         return true;
@@ -174,7 +178,7 @@ class CrudController extends Controller
         $this->model    = new $this->{'modelClass'}();
         $controller     = $this->router->getControllerName();
         $indexUri       = "$controller/index";
-        $editUri        = is_null($id) ? "$controller/edit" : "$controller/edit/$id";
+        $editUri        = "$controller/edit/$id";
 
         if (!$this->request->isPost()) {
             return $this->forward($indexUri);
