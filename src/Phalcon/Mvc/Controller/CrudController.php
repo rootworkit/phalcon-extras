@@ -83,6 +83,26 @@ class CrudController extends Controller
     }
 
     /**
+     * Handler to fire 'CRUD before' event
+     */
+    public function beforeExecuteRoute()
+    {
+        $action = $this->router->getActionName();
+        $event  = ucfirst($action);
+        $this->getEventsManager()->fire("crud:before$event", $this);
+    }
+
+    /**
+     * Handler to fire 'CRUD after' event
+     */
+    public function afterExecuteRoute()
+    {
+        $action = $this->router->getActionName();
+        $event  = ucfirst($action);
+        $this->getEventsManager()->fire("crud:after$event", $this);
+    }
+
+    /**
      * Index action: usually displays a search page.
      */
     public function indexAction()
@@ -221,8 +241,7 @@ class CrudController extends Controller
         }
 
         $form->clear();
-        $this->flash->success($this->msgSavedSuccess);
-        return $this->forward($indexUri);
+        return true;
     }
 
     /**
@@ -252,8 +271,27 @@ class CrudController extends Controller
             return $this->forward("$controller/search");
         }
 
+        return true;
+    }
+
+    /**
+     * After save event.
+     */
+    public function afterSave()
+    {
+        $controller = $this->router->getControllerName();
+        $this->flash->success($this->msgSavedSuccess);
+        $this->forward("$controller/index");
+    }
+
+    /**
+     * After delete event.
+     */
+    public function afterDelete()
+    {
+        $controller = $this->router->getControllerName();
         $this->flash->success($this->msgItemDeleted);
-        return $this->forward("$controller/index");
+        $this->forward("$controller/index");
     }
 
     /**
