@@ -12,6 +12,7 @@
 namespace Rootwork\Phalcon\Mvc\Controller;
 
 use Phalcon\Mvc\Controller;
+use Phalcon\Events\Manager as EventsManager;
 use Phalcon\Mvc\Model\Criteria;
 use Phalcon\Paginator\Adapter\Model as Paginator;
 
@@ -272,6 +273,22 @@ class CrudController extends Controller
         }
 
         return true;
+    }
+
+    /**
+     * Get the events manager (create if necessary).
+     *
+     * @return \Phalcon\Events\ManagerInterface
+     */
+    public function getEventsManager()
+    {
+        if (!($this->_eventsManager instanceof EventsManager)) {
+            $eventsManager = new EventsManager();
+            $eventsManager->attach('crud', $this);
+            $this->setEventsManager($eventsManager);
+        }
+
+        return parent::getEventsManager();
     }
 
     /**
