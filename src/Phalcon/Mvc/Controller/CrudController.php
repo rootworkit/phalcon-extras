@@ -12,6 +12,7 @@
 namespace Rootwork\Phalcon\Mvc\Controller;
 
 use Phalcon\Mvc\Controller;
+use Phalcon\Events\Manager as EventsManager;
 use Phalcon\Mvc\Model\Criteria;
 use Phalcon\Paginator\Adapter\Model as Paginator;
 
@@ -80,6 +81,26 @@ class CrudController extends Controller
                 "$class::formClass and $class::modelClass must be set (with full namespaces)"
             );
         }
+    }
+
+    /**
+     * Handler to fire 'CRUD before' event
+     */
+    public function beforeExecuteRoute()
+    {
+        $action = $this->router->getActionName();
+        $event  = ucfirst($action);
+        $this->getEventsManager()->fire("crud:before$event", $this);
+    }
+
+    /**
+     * Handler to fire 'CRUD after' event
+     */
+    public function afterExecuteRoute()
+    {
+        $action = $this->router->getActionName();
+        $event  = ucfirst($action);
+        $this->getEventsManager()->fire("crud:after$event", $this);
     }
 
     /**
@@ -221,8 +242,7 @@ class CrudController extends Controller
         }
 
         $form->clear();
-        $this->flash->success($this->msgSavedSuccess);
-        return $this->forward($indexUri);
+        return true;
     }
 
     /**
@@ -252,8 +272,43 @@ class CrudController extends Controller
             return $this->forward("$controller/search");
         }
 
+        return true;
+    }
+
+    /**
+     * Get the events manager (create if necessary).
+     *
+     * @return \Phalcon\Events\ManagerInterface
+     */
+    public function getEventsManager()
+    {
+        if (!($this->_eventsManager instanceof EventsManager)) {
+            $eventsManager = new EventsManager();
+            $eventsManager->attach('crud', $this);
+            $this->setEventsManager($eventsManager);
+        }
+
+        return parent::getEventsManager();
+    }
+
+    /**
+     * After save event.
+     */
+    public function afterSave()
+    {
+        $controller = $this->router->getControllerName();
+        $this->flash->success($this->msgSavedSuccess);
+        $this->forward("$controller/index");
+    }
+
+    /**
+     * After delete event.
+     */
+    public function afterDelete()
+    {
+        $controller = $this->router->getControllerName();
         $this->flash->success($this->msgItemDeleted);
-        return $this->forward("$controller/index");
+        $this->forward("$controller/index");
     }
 
     /**
