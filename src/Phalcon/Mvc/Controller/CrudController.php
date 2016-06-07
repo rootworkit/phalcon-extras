@@ -69,6 +69,20 @@ class CrudController extends Controller
     protected $msgItemDeleted = 'Item was deleted';
 
     /**
+     * if not empty, redirect to this action when search action returns no results
+     * 
+     * @var string
+     */
+    protected $noSearchResultsAction = 'index';
+
+    /**
+     * number of models to show on one page of search results
+     * 
+     * @var int
+     */
+    protected $pageLimit = 10;
+
+    /**
      * Initialize the CRUD controller.
      */
     public function initialize()
@@ -117,14 +131,14 @@ class CrudController extends Controller
 
         $results = $modelClass::find($parameters);
 
-        if (count($results) == 0) {
+        if (count($results) == 0 and $this->noSearchResultsAction) {
             $this->flash->notice($this->msgNoResults);
-            return $this->forward($this->router->getControllerName() . '/index');
+            return $this->forward($this->router->getControllerName() . '/' . $this->noSearchResultsAction);
         }
 
         $paginator = new Paginator(array(
             "data"  => $results,
-            "limit" => 10,
+            "limit" => $this->pageLimit,
             "page"  => $pageNumber
         ));
 
@@ -274,6 +288,27 @@ class CrudController extends Controller
         ]);
 
         return true;
+    }
+
+    /**
+     * set action name to forward to if search finds 0 results
+     * set to empty string to disable forwarding
+     * 
+     * @param string $noSearchResultsAction
+     */
+    public function setNoSearchResultsAction($noSearchResultsAction = '')
+    {
+        $this->noSearchResultsAction = $noSearchResultsAction;
+    }
+
+    /**
+     * set number of models to show on one page of search results
+     * 
+     * @param int $pageLimit
+     */
+    public function setPageLimit($pageLimit)
+    {
+        $this->pageLimit = $pageLimit;
     }
 
 }

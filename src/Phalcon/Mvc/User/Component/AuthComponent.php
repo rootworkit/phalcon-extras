@@ -202,7 +202,7 @@ class AuthComponent extends Component implements MiddlewareInterface
      *
      * @return AclList
      */
-    protected function getAcl()
+    public function getAcl()
     {
         $acl = null;
 
