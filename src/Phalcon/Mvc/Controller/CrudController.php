@@ -42,42 +42,14 @@ class CrudController extends Controller
     protected $model;
 
     /**
-     * Flash message for no search results.
+     * Form instance.
      *
-     * @var string
+     * @var \Phalcon\Forms\Form
      */
-    protected $msgNoResults = 'No results found';
+    protected $form;
 
     /**
-     * Flash message for no model found with the given ID.
-     *
-     * @var string
-     */
-    protected $msgNotFoundId = 'Item was not found';
-
-    /**
-     * Flash message for item saved successfully.
-     *
-     * @var string
-     */
-    protected $msgSavedSuccess = 'Item saved successfully';
-
-    /**
-     * Flash message for item deleted.
-     *
-     * @var string
-     */
-    protected $msgItemDeleted = 'Item was deleted';
-
-    /**
-     * if not empty, redirect to this action when search action returns no results
-     * 
-     * @var string
-     */
-    protected $noSearchResultsAction = 'index';
-
-    /**
-     * number of models to show on one page of search results
+     * Number of models to show on one page of search results
      * 
      * @var int
      */
@@ -98,32 +70,19 @@ class CrudController extends Controller
     }
 
     /**
-     * Handler to fire 'CRUD before' event
-     */
-    public function beforeExecuteRoute()
-    {
-        $action = $this->router->getActionName();
-        $event  = ucfirst($action);
-        $this->getEventsManager()->fire("crud:before$event", $this);
-    }
-
-    /**
-     * Handler to fire 'CRUD after' event
-     */
-    public function afterExecuteRoute()
-    {
-        $action = $this->router->getActionName();
-        $event  = ucfirst($action);
-        $this->getEventsManager()->fire("crud:after$event", $this);
-    }
-
-    /**
      * Index action: usually displays a search page.
      */
     public function indexAction()
     {
+        if ($this->fireEvent('beforeIndex') === false) {
+            return false;
+        }
+
         $this->persistent->searchParams = null;
-        $this->view->form = new $this->{'formClass'}();
+        $this->form = new $this->{'formClass'}();
+        $this->view->form = $this->form;
+
+        return $this->fireEvent('afterIndex');
     }
 
     /**
@@ -133,6 +92,10 @@ class CrudController extends Controller
      */
     public function searchAction()
     {
+        if ($this->fireEvent('beforeSearch') === false) {
+            return false;
+        }
+
         /** @var string|object $modelClass */
         $modelClass = $this->modelClass;
         $pageNumber = 1;
@@ -152,9 +115,8 @@ class CrudController extends Controller
 
         $results = $modelClass::find($parameters);
 
-        if (count($results) == 0 and $this->noSearchResultsAction) {
-            $this->flash->notice($this->msgNoResults);
-            return $this->forward($this->router->getControllerName() . '/' . $this->noSearchResultsAction);
+        if (!count($results) && $this->fireEvent('onSearchNotFound') === false) {
+            return false;
         }
 
         $paginator = new Paginator(array(
@@ -164,7 +126,8 @@ class CrudController extends Controller
         ));
 
         $this->view->page = $paginator->getPaginate();
-        return true;
+
+        return $this->fireEvent('afterSearch');
     }
 
     /**
@@ -176,29 +139,40 @@ class CrudController extends Controller
      */
     public function editAction($id = null)
     {
+        if ($this->fireEvent('beforeEdit') === false) {
+            return false;
+        }
+
         if (!$this->request->isPost()) {
             /** @var string|object $modelClass */
-            $modelClass     = $this->modelClass;
+            $modelClass = $this->modelClass;
 
             if (!is_null($id)) {
-                $this->model    = $modelClass::findFirstById($id);
-
-                if (!$this->model) {
-                    $this->flash->error($this->msgNotFoundId);
-                    return $this->forward($this->router->getControllerName() . '/index');
+                if ($this->fireEvent('beforeEditExisting') === false) {
+                    return false;
                 }
 
-                $form = new $this->{'formClass'}($this->model, ['edit' => true]);
+                $this->model = $modelClass::findFirstById($id);
+
+                if (!$this->model) {
+                    return $this->fireEvent('onEditNotFound');
+                }
+
+                $this->form = new $this->{'formClass'}($this->model, ['edit' => true]);
             } else {
+                if ($this->fireEvent('beforeEditNew') === false) {
+                    return false;
+                }
+
                 $this->model    = new $modelClass();
-                $form           = new $this->{'formClass'}(null, ['edit' => true]);
+                $this->form     = new $this->{'formClass'}(null, ['edit' => true]);
             }
 
-            $this->view->form   = $form;
+            $this->view->form   = $this->form;
             $this->view->model  = $this->model;
         }
 
-        return true;
+        return $this->fireEvent('afterEdit');
     }
 
     /**
@@ -210,53 +184,61 @@ class CrudController extends Controller
      */
     public function saveAction($id = null)
     {
-        $this->model    = new $this->{'modelClass'}();
-        $controller     = $this->router->getControllerName();
-        $indexUri       = "$controller/index";
-        $editUri        = "$controller/edit/$id";
-
-        if (!$this->request->isPost()) {
-            return $this->forward($indexUri);
+        if ($this->fireEvent('beforeSave') === false) {
+            return false;
         }
 
+        if (!$this->request->isPost()) {
+            return $this->fireEvent('onSaveNotPostRequest');
+        }
+
+        $this->model = new $this->{'modelClass'}();
+
         if (!is_null($id)) {
+            if ($this->fireEvent('beforeSaveExisting') === false) {
+                return false;
+            }
+
             /** @var string|object $modelClass */
             $modelClass     = $this->modelClass;
             $this->model    = $modelClass::findFirstById($id);
 
             if (!$this->model) {
-                $this->flash->error($this->msgNotFoundId);
-                return $this->forward($indexUri);
+                return $this->fireEvent('onSaveNotFound');
             }
 
-            $form = new $this->{'formClass'}($this->model, ['edit' => true]);
+            $this->form = new $this->{'formClass'}($this->model, ['edit' => true]);
         } else {
-            $form = new $this->{'formClass'}(null, ['edit' => true]);
+            if ($this->fireEvent('beforeSaveNew') === false) {
+                return false;
+            }
+
+            $this->form = new $this->{'formClass'}(null, ['edit' => true]);
         }
 
-        $this->view->form   = $form;
+        $this->view->form   = $this->form;
         $this->view->model  = $this->model;
         $data               = $this->request->getPost();
 
-        /** @var \Phalcon\Forms\Form $form */
-        if (!$form->isValid($data, $this->model)) {
-            foreach ($form->getMessages() as $message) {
-                $this->flash->error($message);
-            }
+        if ($this->fireEvent('beforeValidation') === false) {
+            return false;
+        }
 
-            return $this->forward($editUri);
+        if (!$this->form->isValid($data, $this->model)) {
+            return $this->fireEvent('onFormValidationFails');
+        }
+
+        if ($this->fireEvent('afterValidation') === false) {
+            return false;
         }
 
         if ($this->model->save() == false) {
-            foreach ($this->model->getMessages() as $message) {
-                $this->flash->error($message);
-            }
-
-            return $this->forward($editUri);
+            return $this->fireEvent('onSaveFails');
         }
 
-        $form->clear();
-        return true;
+        $this->form->clear();
+
+        return $this->fireEvent('afterSave');
     }
 
     /**
@@ -268,25 +250,23 @@ class CrudController extends Controller
      */
     public function deleteAction($id)
     {
+        if ($this->fireEvent('beforeDelete') === false) {
+            return false;
+        }
+
         /** @var string|object $modelClass */
         $modelClass     = $this->modelClass;
         $this->model    = $modelClass::findFirstById($id);
-        $controller     = $this->router->getControllerName();
 
         if (!$this->model) {
-            $this->flash->error($this->msgNotFoundId);
-            return $this->forward("$controller/index");
+            return $this->fireEvent('onDeleteNotFound');
         }
 
         if (!$this->model->delete()) {
-            foreach ($this->model->getMessages() as $message) {
-                $this->flash->error($message);
-            }
-
-            return $this->forward("$controller/search");
+            return $this->fireEvent('onDeleteFails');
         }
 
-        return true;
+        return $this->fireEvent('afterDelete');
     }
 
     /**
@@ -306,13 +286,127 @@ class CrudController extends Controller
     }
 
     /**
+     * Fire a CRUD event by name.
+     *
+     * @param string $event
+     *
+     * @return mixed
+     */
+    public function fireEvent($event)
+    {
+        return $this->getEventsManager()->fire("crud:$event", $this);
+    }
+
+    /**
+     * No results found event.
+     *
+     * @return bool
+     */
+    public function onResultsNotFound()
+    {
+        $this->flash->notice('No results found');
+        return $this->forward($this->router->getControllerName() . '/index');
+    }
+
+    /**
+     * Search results not found event.
+     *
+     * @return bool
+     */
+    public function onSearchNotFound()
+    {
+        return $this->onResultsNotFound();
+    }
+
+    /**
+     * Edit model not found event.
+     *
+     * @return bool
+     */
+    public function onEditNotFound()
+    {
+        return $this->onResultsNotFound();
+    }
+
+    /**
+     * Edit results not found event.
+     *
+     * @return bool
+     */
+    public function onSaveNotFound()
+    {
+        return $this->onResultsNotFound();
+    }
+
+    /**
+     * Save without post request.
+     *
+     * @return bool
+     */
+    public function onSaveNotPostRequest()
+    {
+        return $this->forward($this->router->getControllerName() . '/index');
+    }
+
+    /**
+     * On form validation fails event.
+     *
+     * @return bool
+     */
+    public function onFormValidationFails()
+    {
+        foreach ($this->form->getMessages() as $message) {
+            $this->flash->error($message);
+        }
+
+        return $this->forward($this->router->getControllerName() . '/edit');
+    }
+
+    /**
+     * On save fails event.
+     *
+     * @return bool
+     */
+    public function onSaveFails()
+    {
+        foreach ($this->model->getMessages() as $message) {
+            $this->flash->error($message);
+        }
+
+        return $this->forward($this->router->getControllerName() . '/edit/' . $this->model->id);
+    }
+
+    /**
      * After save event.
      */
     public function afterSave()
     {
-        $controller = $this->router->getControllerName();
-        $this->flash->success($this->msgSavedSuccess);
-        $this->forward("$controller/index");
+        $this->flash->success('Item saved successfully');
+        $this->forward($this->router->getControllerName() . '/index');
+    }
+
+    /**
+     * Delete not found event.
+     *
+     * @return bool
+     */
+    public function onDeleteNotFound()
+    {
+        return $this->onResultsNotFound();
+    }
+
+    /**
+     * On delete fails event.
+     *
+     * @return bool
+     */
+    public function onDeleteFails()
+    {
+        foreach ($this->model->getMessages() as $message) {
+            $this->flash->error($message);
+        }
+
+        return $this->forward($this->router->getControllerName() . '/edit/' . $this->model->id);
     }
 
     /**
@@ -320,9 +414,8 @@ class CrudController extends Controller
      */
     public function afterDelete()
     {
-        $controller = $this->router->getControllerName();
-        $this->flash->success($this->msgItemDeleted);
-        $this->forward("$controller/index");
+        $this->flash->success('Item was deleted');
+        $this->forward($this->router->getControllerName() . '/index');
     }
 
     /**
@@ -330,7 +423,7 @@ class CrudController extends Controller
      *
      * @param string $uri
      *
-     * @return null
+     * @return bool
      */
     protected function forward($uri)
     {
@@ -346,24 +439,17 @@ class CrudController extends Controller
     }
 
     /**
-     * set action name to forward to if search finds 0 results
-     * set to empty string to disable forwarding
-     * 
-     * @param string $noSearchResultsAction
-     */
-    public function setNoSearchResultsAction($noSearchResultsAction = '')
-    {
-        $this->noSearchResultsAction = $noSearchResultsAction;
-    }
-
-    /**
-     * set number of models to show on one page of search results
-     * 
+     * Set number of models to show on one page of search results
+     *
      * @param int $pageLimit
+     *
+     * @return $this
      */
     public function setPageLimit($pageLimit)
     {
         $this->pageLimit = $pageLimit;
+
+        return $this;
     }
 
 }
