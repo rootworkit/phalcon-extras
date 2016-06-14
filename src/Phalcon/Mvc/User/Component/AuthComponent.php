@@ -19,6 +19,7 @@ use Phalcon\Acl\Resource;
 use Phalcon\Acl\Adapter\Memory as AclList;
 use Phalcon\Cache\BackendInterface as CacheBackend;
 use Phalcon\Events\Manager as EventsManager;
+use Phalcon\Text;
 
 /**
  * An authorization component for Phalcon apps
@@ -259,7 +260,7 @@ class AuthComponent extends Component implements MiddlewareInterface
             $parts      = explode('\\', get_class($handler[0]));
             $controller = str_replace('Controller', '', array_pop($parts));
         } else {
-            $controller = ucfirst($this->dispatcher->getControllerName());
+            $controller = Text::camelize($this->dispatcher->getControllerName());
         }
 
         return $controller;
