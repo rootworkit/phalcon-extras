@@ -1,10 +1,10 @@
-# phalcon-toolbox
-A growing collection of useful Phalcon code
+# phalcon-extras
+A growing collection of useful Phalcon classes
 
 ## Installation
 
 ```bash
-composer require rootwork/phalcon-toolbox:dev-master
+composer require rootwork/phalcon-extras:dev-master
 ```
 
 ## Authorization Component
