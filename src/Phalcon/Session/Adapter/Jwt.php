@@ -117,10 +117,9 @@ class Jwt extends Adapter implements AdapterInterface, InjectionAwareInterface
     public function start()
     {
         if (!headers_sent() && $this->status() !== self::SESSION_ACTIVE) {
-            $this->receiveToken();
             session_start();
             $this->_started = true;
-            $this->sendToken();
+            $this->write();
 
             return true;
         }
@@ -151,17 +150,27 @@ class Jwt extends Adapter implements AdapterInterface, InjectionAwareInterface
     /**
      * Read session data from the access token
      *
-     * @param  string $accessToken
      * @return string
      */
-    public function read($accessToken)
+    public function read()
     {
+        if ($getter = $this->tokenGetter) {
+            $token = $getter();
+        } else {
+            $cookies    = $this->getDI()->get('cookies');
+            $token      = $cookies->get($this->getName())->getValue();
+        }
+
         try {
-            $payload = JwtUtil::decode(
-                $accessToken,
-                $this->_options['jwtKey'],
-                [$this->_options['algorithm']]
-            );
+            if ($token) {
+                $payload = JwtUtil::decode(
+                    $token,
+                    $this->_options['jwtKey'],
+                    [$this->_options['algorithm']]
+                );
+
+                $this->setId($payload->jti);
+            }
         } catch (\Exception $e) {
             // The JWT library throws exceptions for invalid tokens
             $this->lastError = $e->getMessage();
@@ -173,12 +182,24 @@ class Jwt extends Adapter implements AdapterInterface, InjectionAwareInterface
     /**
      * Write the session data.
      *
+     * @param string $id
+     * @param string $data
+     *
      * @return bool
      */
-    public function write()
+    public function write($id = null, $data = null)
     {
-        $this->regenerateId(); // Regenerates the JWT from latest session data
-        $this->sendToken();
+        $id = ($id) ? $id : $this->getId();
+        $data = ($data) ? $data : session_encode();
+        $token = $this->generateToken((array) unserialize($data));
+
+        if ($setter = $this->tokenSetter) {
+            return $setter($token);
+        }
+
+        /** @var Response\CookiesInterface $cookies */
+        $cookies = $this->getDI()->get('cookies');
+        $cookies->set($this->getName(), $token, $this->exp);
 
         return true;
     }
@@ -202,8 +223,7 @@ class Jwt extends Adapter implements AdapterInterface, InjectionAwareInterface
      */
     public function create_sid()
     {
-        $data = isset($_SESSION) ? $_SESSION : [];
-        return $this->generateToken($data);
+        return bin2hex(openssl_random_pseudo_bytes(22));
     }
 
     /**
@@ -217,9 +237,9 @@ class Jwt extends Adapter implements AdapterInterface, InjectionAwareInterface
     {
         $now = time();
 
-        $data['jti'] = bin2hex(openssl_random_pseudo_bytes(22));
+        $data['jti'] = $this->getId();
         $data['iat'] = $now;
-        $data['nbf'] = $now;
+        $data['nbf'] = $now - 10;
         $data['exp'] = $now + $this->_options['lifetime'];
         $data['iss'] = null;
 
@@ -232,45 +252,6 @@ class Jwt extends Adapter implements AdapterInterface, InjectionAwareInterface
         $jwt        = JwtUtil::encode($data, $jwtKey, $algorithm);
 
         return $jwt;
-    }
-
-    /**
-     * Set up delivery of the JWT.
-     *
-     * @return bool
-     */
-    public function sendToken()
-    {
-        if ($setter = $this->tokenSetter) {
-            return $setter($this->getId());
-        }
-
-        /** @var Response\CookiesInterface $cookies */
-        $cookies = $this->getDI()->get('cookies');
-        $cookies->set($this->getName(), $this->getId(), $this->exp);
-
-        return true;
-    }
-
-    /**
-     * Get JWT from the request.
-     *
-     * @return string
-     */
-    public function receiveToken()
-    {
-        if ($getter = $this->tokenGetter) {
-            $token = $getter();
-        } else {
-            $cookies    = $this->getDI()->get('cookies');
-            $token      = $cookies->get($this->getName())->getValue();
-        }
-
-        if ($token) {
-            $this->setId($token);
-        }
-
-        return true;
     }
 
     /**
@@ -334,5 +315,4 @@ class Jwt extends Adapter implements AdapterInterface, InjectionAwareInterface
 
         return $this->dependencyInjector;
     }
-
 }
