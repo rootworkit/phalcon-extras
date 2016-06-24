@@ -25,5 +25,6 @@
     },
     "replace": {
         "rootwork/phalcon-toolbox": "0.1.*"
-    }
+    },
+    "minimum-stability": "dev"
 }
