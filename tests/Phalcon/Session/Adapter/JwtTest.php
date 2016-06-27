@@ -46,6 +46,7 @@ namespace Rootwork\Test\Phalcon\Session\Adapter {
         {
             $_SERVER['SERVER_NAME'] = 'example.com';
             $this->payload          = (object) [
+                'jti'   => bin2hex(openssl_random_pseudo_bytes(22)),
                 'iss'   => $_SERVER['SERVER_NAME'],
                 'sub'   => hexdec(uniqid()),
                 'aud'   => 'Testers',
@@ -64,6 +65,10 @@ namespace Rootwork\Test\Phalcon\Session\Adapter {
         public function tearDown()
         {
             session_write_close();
+
+            /** @var Cookies $cookies */
+            $cookies = $this->sut->getDI()->get('cookies');
+            $cookies->reset();
         }
 
         /**

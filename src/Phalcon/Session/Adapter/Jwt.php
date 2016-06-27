@@ -189,7 +189,6 @@ class Jwt extends Adapter implements AdapterInterface, InjectionAwareInterface
      */
     public function write($id = null, $data = null)
     {
-        $id = ($id) ? $id : $this->getId();
         $data = ($data) ? $data : session_encode();
         $token = $this->generateToken((array) unserialize($data));
 
