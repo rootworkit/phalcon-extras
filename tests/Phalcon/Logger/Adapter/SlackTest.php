@@ -50,9 +50,8 @@ class SlackTest extends TestCase
      */
     public function setUp()
     {
-        $name       = 'slack';
+        $url        = 'https://hooks.slack.com/services/foo/bar/baz';
         $options    = [
-            'url' => 'https://hooks.slack.com/services/foo/bar/baz',
             'formatterOptions' => [
                 'alertChannel'      => true,
                 'useAttachments'    => true,
@@ -67,7 +66,7 @@ class SlackTest extends TestCase
         $this->client = $this->getMockBuilder(SlackClient::class)
             ->setMethods(['sendMessage'])
             ->setConstructorArgs([
-                $options['url'],
+                $url,
                 $options['clientSettings'],
             ])
             ->getMock();
@@ -79,7 +78,7 @@ class SlackTest extends TestCase
 
         $this->sut = $this->getMockBuilder(Slack::class)
             ->setMethods(['getClient'])
-            ->setConstructorArgs([$name, $options])
+            ->setConstructorArgs([$url, $options])
             ->getMock();
 
         $this->sut->expects($this->any())->method('getClient')
