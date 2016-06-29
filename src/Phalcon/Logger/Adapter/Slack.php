@@ -28,11 +28,11 @@ class Slack extends Adapter implements AdapterInterface
 {
 
     /**
-     * The log name.
+     * The Slack webhook URL.
      *
      * @var string
      */
-    protected $name;
+    protected $url;
 
     /**
      * Adapter options.
@@ -53,16 +53,14 @@ class Slack extends Adapter implements AdapterInterface
     /**
      * Slack constructor.
      *
-     * @param string $name
+     * @param string $url
      * @param array  $options
      *
      * @throws Exception
      */
-    public function __construct($name = 'slack', array $options = [])
+    public function __construct($url, array $options = [])
     {
-        if (empty($options['url'])) {
-            throw new Exception('A Slack webhook URL is required');
-        }
+        $this->url = $url;
 
         if (isset($options['level'])) {
             $this->setLogLevel($options['level']);
@@ -139,9 +137,8 @@ class Slack extends Adapter implements AdapterInterface
     protected function getClient()
     {
         if (!$this->client) {
-            $url            = $this->getOption('url');
             $settings       = $this->getOption('clientSettings', []);
-            $this->client   = new SlackClient($url, $settings);
+            $this->client   = new SlackClient($this->url, $settings);
         }
 
         return $this->client;
