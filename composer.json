@@ -12,18 +12,23 @@
     ],
     "require": {
         "php": ">=5.5.4",
-        "ext-phalcon": ">=2.0.4",
-        "firebase/php-jwt": "^3.0"
+        "ext-phalcon": ">=2.0.4"
     },
     "require-dev": {
         "phalcon/devtools": "^2.0",
         "phpunit/phpunit": "^5.3",
-        "rootwork/phpunit-helpers": "dev-master"
+        "rootwork/phpunit-helpers": "dev-master",
+        "firebase/php-jwt": "^3.0",
+        "maknz/slack": "dev-master"
     },
     "autoload": {
         "psr-4": { "Rootwork\\Phalcon\\": "src/Phalcon/" }
     },
     "replace": {
         "rootwork/phalcon-toolbox": "0.1.*"
+    },
+    "suggest": {
+        "firebase/php-jwt": "Required for JWT sessions",
+        "maknz/slack": "Required to use the Slack log adapter"
     }
 }
