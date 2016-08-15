@@ -57,7 +57,7 @@ class SlackTest extends TestCase
                 'useAttachments'    => true,
             ],
             'clientSettings' => [
-                'username'      => 'Mend Production',
+                'username'      => 'yourusername',
                 'link_names'    => true,
                 'markdown_in_attachments' => ['text'],
             ],
