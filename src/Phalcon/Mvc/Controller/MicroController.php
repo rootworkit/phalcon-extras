@@ -76,29 +76,20 @@ class MicroController extends Controller
     /**
      * Return paged search results.
      *
-     * @param mixed|null $id
-     *
      * @return bool
      */
-    public function search($id = null)
+    public function search()
     {
         if ($this->fireEvent('beforeSearch') === false) {
             return false;
         }
 
-        $search = $this->request->getQuery();
-
-        if ($id) {
-            $search['id'] = $id;
-        }
-
         /** @var string|object $modelClass */
         $modelClass = $this->modelClass;
-        $query      = Criteria::fromInput($this->di, $modelClass, $search);
-        $parameters = $query->getParams();
-        $results    = $modelClass::find($parameters);
+        $query      = Criteria::fromInput($this->di, $modelClass, $this->request->getQuery());
+        $results    = $modelClass::find($query->getParams());
 
-        if (!count($results) && $this->fireEvent('onSearchNotFound') === false) {
+        if (!count($results) && $this->fireEvent('onResultsNotFound') === false) {
             return false;
         }
 
@@ -111,6 +102,33 @@ class MicroController extends Controller
         $this->view->page = $paginator->getPaginate();
 
         return $this->fireEvent('afterSearch');
+    }
+
+    /**
+     * Read a result by ID.
+     *
+     * @param mixed $id
+     *
+     * @return bool
+     */
+    public function read($id)
+    {
+        if ($this->fireEvent('beforeRead') === false) {
+            return false;
+        }
+
+        /** @var string|object $modelClass */
+        $modelClass = $this->modelClass;
+        $model      = $modelClass::findFirstById($id);
+
+        if (!$model && $this->fireEvent('onResultsNotFound') === false) {
+            return false;
+        }
+
+        $this->model        = $model;
+        $this->view->model  = $model;
+
+        return $this->fireEvent('afterRead');
     }
 
     /**
@@ -232,6 +250,7 @@ class MicroController extends Controller
     public function onResultsNotFound()
     {
         $this->flash->notice('No results found');
+        return false;
     }
 
     /**
