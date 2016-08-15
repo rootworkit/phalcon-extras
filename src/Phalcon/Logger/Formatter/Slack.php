@@ -4,7 +4,7 @@
  *
  * @package     Rootwork\Phalcon\Logger\Formatter
  * @copyright   Copyright (c) 2016
- * @license     All Rights Reserved
+ * @license     BSD-3-clause
  * @author      Mike Soule <mike@rootwork.it>
  * @filesource
  */

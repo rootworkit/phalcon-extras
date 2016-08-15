@@ -4,7 +4,7 @@
  *
  * @package     Rootwork\Phalcon\Logger\Adapter
  * @copyright   Copyright (c) 2016 Rootwork InfoTech LLC (www.rootwork.it)
- * @license     All Rights Reserved
+ * @license     BSD-3-clause
  * @author      Mike Soule <mike@rootwork.it>
  * @filesource
  * @see         https://slack.com
