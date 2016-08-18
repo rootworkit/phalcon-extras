@@ -39,6 +39,13 @@ class MicroController extends Controller
     protected $modelClass;
 
     /**
+     * Validation instance.
+     *
+     * @var \Phalcon\Validation
+     */
+    protected $validation;
+
+    /**
      * Model instance loaded in an action.
      *
      * @var \Phalcon\Mvc\Model
@@ -46,11 +53,11 @@ class MicroController extends Controller
     protected $model;
 
     /**
-     * Validation instance.
+     * Array of model results.
      *
-     * @var \Phalcon\Validation
+     * @var \Phalcon\Mvc\Model[]
      */
-    protected $validation;
+    protected $results = [];
 
     /**
      * Number of models to show on one page of search results
@@ -87,19 +94,19 @@ class MicroController extends Controller
         /** @var string|object $modelClass */
         $modelClass = $this->modelClass;
         $query      = Criteria::fromInput($this->di, $modelClass, $this->request->getQuery());
-        $results    = $modelClass::find($query->getParams());
+        $models     = $modelClass::find($query->getParams());
 
-        if (!count($results) && $this->fireEvent('onResultsNotFound') === false) {
+        if (!count($models) && $this->fireEvent('onResultsNotFound') === false) {
             return false;
         }
 
         $paginator = new Paginator([
-            "data"  => $results,
+            "data"  => $models,
             "limit" => $this->request->getQuery('limit', 'int', $this->pageLimit),
             "page"  => $this->request->getQuery('page', 'int', 1),
         ]);
 
-        $this->view->page = $paginator->getPaginate();
+        $this->results = $paginator->getPaginate()->items;
 
         return $this->fireEvent('afterSearch');
     }
@@ -125,8 +132,7 @@ class MicroController extends Controller
             return false;
         }
 
-        $this->model        = $model;
-        $this->view->model  = $model;
+        $this->model = $model;
 
         return $this->fireEvent('afterRead');
     }
@@ -260,7 +266,7 @@ class MicroController extends Controller
      */
     public function onValidationFails()
     {
-        foreach ($this->form->getMessages() as $message) {
+        foreach ($this->validation->getMessages() as $message) {
             $this->flash->error($message);
         }
     }
