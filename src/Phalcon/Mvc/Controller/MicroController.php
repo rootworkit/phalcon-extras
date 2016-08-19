@@ -229,7 +229,7 @@ class MicroController extends Controller
     {
         if (!($this->_eventsManager instanceof EventsManager)) {
             $eventsManager = new EventsManager();
-            $eventsManager->attach('crud', $this);
+            $eventsManager->attach('microController', $this);
             $this->setEventsManager($eventsManager);
         }
 
