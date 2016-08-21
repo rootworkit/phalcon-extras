@@ -34,7 +34,7 @@ class Criteria extends \Phalcon\Mvc\Model\Criteria
         $conditions = [];
         $bind = [];
 
-		if (count($data)) {
+        if (count($data)) {
             $metaData = $dependencyInjector->getShared('modelsMetadata');
             $model = new $modelName();
             $dataTypes = $metaData->getDataTypes($model);
@@ -43,41 +43,47 @@ class Criteria extends \Phalcon\Mvc\Model\Criteria
             foreach ($data as $field => $value) {
                 if (is_array($columnMap) && count($columnMap)) {
                     $attribute = $columnMap[$field];
-				} else {
+                } else {
                     $attribute = $field;
-				}
+                }
 
-				if (isset($dataTypes[$attribute])) {
+                if (isset($dataTypes[$attribute])) {
                     if ($value !== null && $value !== '') {
+                        if (is_array($value)) {
+                            $conditions[] = "[$field] IN ({" . $field . ":array})";
+                            $bind[$field] = $value;
+                            continue;
+                        }
+
                         if ($dataTypes[$attribute] == Column::TYPE_VARCHAR) {
                             /**
                              * For varchar types we use LIKE operator
                              */
                             $conditions[] = "[$field] LIKE :$field:";
                             $bind[$field] = "%$value%";
-							continue;
-						}
+                            continue;
+                        }
 
                         /**
                          * For the rest of data types we use a plain = operator
                          */
                         $conditions[] = "[$field] = :$field:";
                         $bind[$field] = $value;
-					}
+                    }
                 }
-			}
-		}
+            }
+        }
 
-		/**
+        /**
          * Create an object instance and pass the paramaters to it
          */
-		$criteria = new self();
-		if (count($conditions)) {
+        $criteria = new self();
+        if (count($conditions)) {
             $criteria->where(join(" $operator ", $conditions));
-			$criteria->bind($bind);
-		}
+            $criteria->bind($bind);
+        }
 
-		$criteria->setModelName($modelName);
-		return $criteria;
+        $criteria->setModelName($modelName);
+        return $criteria;
     }
 }
