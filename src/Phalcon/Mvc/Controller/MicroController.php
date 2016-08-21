@@ -13,8 +13,8 @@ namespace Rootwork\Phalcon\Mvc\Controller;
 
 use Phalcon\Mvc\Controller;
 use Phalcon\Events\Manager as EventsManager;
-use Phalcon\Mvc\Model\Criteria;
 use Phalcon\Paginator\Adapter\Model as Paginator;
+use Rootwork\Phalcon\Mvc\Model\Criteria;
 
 /**
  * A CRUD controller for micro applications.
