@@ -29,7 +29,7 @@ class Criteria extends \Phalcon\Mvc\Model\Criteria
      *
      * @return Criteria
      */
-    public static function fromInput(DiInterface $dependencyInjector, $modelName, $data, $operator = "AND")
+    public static function fromInput(DiInterface $dependencyInjector, $modelName, array $data, $operator = "AND")
     {
         $conditions = [];
         $bind = [];
