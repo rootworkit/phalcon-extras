@@ -93,7 +93,7 @@ class MicroController extends Controller
 
         /** @var string|object $modelClass */
         $modelClass = $this->modelClass;
-        $query      = Criteria::fromInput($this->di, $modelClass, $this->request->getQuery());
+        $query      = $this->getSearchQuery();
         $models     = $modelClass::find($query->getParams());
 
         if (!count($models) && $this->fireEvent('onResultsNotFound') === false) {
@@ -361,5 +361,15 @@ class MicroController extends Controller
         }
 
         return $this->request->get();
+    }
+
+    /**
+     * Get the search query.
+     *
+     * @return Criteria
+     */
+    protected function getSearchQuery()
+    {
+        return Criteria::fromInput($this->di, $this->modelClass, $this->request->getQuery());
     }
 }
