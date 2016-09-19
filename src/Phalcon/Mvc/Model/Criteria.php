@@ -55,8 +55,13 @@ class Criteria extends \Phalcon\Mvc\Model\Criteria
                             continue;
                         }
 
-                        if ($value === 'NULL') {
-                            $conditions[] = "[$field] IS NULL";
+                        if ($value === 'NULL' || $value === '!NULL') {
+                            if (strpos($value, '!') === 0) {
+                                $conditions[] = "[$field] IS NOT NULL";
+                            } else {
+                                $conditions[] = "[$field] IS NULL";
+                            }
+
                             continue;
                         }
 
