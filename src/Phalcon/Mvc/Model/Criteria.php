@@ -55,6 +55,11 @@ class Criteria extends \Phalcon\Mvc\Model\Criteria
                             continue;
                         }
 
+                        if ($value === 'NULL') {
+                            $conditions[] = "[$field] IS NULL";
+                            continue;
+                        }
+
                         if ($dataTypes[$attribute] == Column::TYPE_VARCHAR) {
                             /**
                              * For varchar types we use LIKE operator
