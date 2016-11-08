@@ -17,7 +17,6 @@ use Phalcon\Di;
 use Phalcon\DiInterface;
 use Phalcon\Di\InjectionAwareInterface;
 use Phalcon\Http\Response;
-use Phalcon\Http\Request;
 use Firebase\JWT\JWT as JwtUtil;
 use Closure;
 
@@ -91,18 +90,6 @@ class Jwt extends Adapter implements AdapterInterface, InjectionAwareInterface
             throw new Exception('A JWT key is required');
         }
 
-        ini_set('session.use_cookies', false);
-        ini_set('session.serialize_handler', 'php_serialize');
-        session_set_save_handler(
-            [$this, 'open'],
-            [$this, 'close'],
-            [$this, 'read'],
-            [$this, 'write'],
-            [$this, 'destroy'],
-            [$this, 'gc'],
-            [$this, 'create_sid']
-        );
-
         $options = array_merge($this->defaultOptions, $options);
         $this->setName($options['name']);
 
@@ -117,6 +104,17 @@ class Jwt extends Adapter implements AdapterInterface, InjectionAwareInterface
     public function start()
     {
         if (!headers_sent() && $this->status() !== self::SESSION_ACTIVE) {
+            ini_set('session.use_cookies', false);
+            ini_set('session.serialize_handler', 'php_serialize');
+            session_set_save_handler(
+                [$this, 'open'],
+                [$this, 'close'],
+                [$this, 'read'],
+                [$this, 'write'],
+                [$this, 'destroy'],
+                [$this, 'gc'],
+                [$this, 'create_sid']
+            );
             session_start();
             $this->_started = true;
             $this->write();
@@ -187,7 +185,7 @@ class Jwt extends Adapter implements AdapterInterface, InjectionAwareInterface
      *
      * @return bool
      */
-    public function write($id = null, $data = null)
+    public function write(/** @noinspection PhpUnusedParameterInspection */ $id = null, $data = null)
     {
         $data = ($data) ? $data : session_encode();
         $token = $this->generateToken((array) unserialize($data));
