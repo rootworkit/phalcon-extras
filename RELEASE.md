@@ -6,6 +6,9 @@
 * Added JWT session adapter.
 * Added callback validator.
 
+### 0.2.1
+* Moved session ini settings to Jwt::start() to prevent session_start() error.
+
 ## 0.1
 
 ### 0.1.3
