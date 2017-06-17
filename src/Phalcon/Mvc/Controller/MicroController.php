@@ -1,6 +1,6 @@
 <?php
 /**
- * CrudController
+ * MicroController
  *
  * @package     Rootwork\Phalcon\Mvc\Controller
  * @copyright   Copyright (c) 2016 Rootwork InfoTech LLC (www.rootwork.it)
@@ -13,84 +13,79 @@ namespace Rootwork\Phalcon\Mvc\Controller;
 
 use Phalcon\Mvc\Controller;
 use Phalcon\Events\Manager as EventsManager;
-use Phalcon\Mvc\Model\Criteria;
 use Phalcon\Paginator\Adapter\Model as Paginator;
+use Rootwork\Phalcon\Mvc\Model\Criteria;
 
 /**
- * A basic CRUD controller for Phalcon apps.
+ * A CRUD controller for micro applications.
  *
  * @package     Rootwork\Phalcon\Mvc\Controller
  */
-class CrudController extends Controller
+class MicroController extends Controller
 {
 
     /**
+     * Name of the validation class to use.
+     *
      * @var string
      */
-    protected $formClass;
+    protected $validationClass;
 
     /**
+     * Name of the model class to use.
+     *
      * @var string
      */
     protected $modelClass;
 
     /**
-     * Model instance loaded in a CRUD action.
+     * Validation instance.
+     *
+     * @var \Phalcon\Validation
+     */
+    protected $validation;
+
+    /**
+     * Model instance loaded in an action.
      *
      * @var \Phalcon\Mvc\Model
      */
     protected $model;
 
     /**
-     * Form instance.
+     * Array of model results.
      *
-     * @var \Phalcon\Forms\Form
+     * @var \Phalcon\Mvc\Model[]
      */
-    protected $form;
+    protected $results = [];
 
     /**
      * Number of models to show on one page of search results
-     * 
+     *
      * @var int
      */
     protected $pageLimit = 10;
 
     /**
-     * Initialize the CRUD controller.
+     * Initialize the controller.
      */
     public function initialize()
     {
-        if (empty($this->formClass) || empty($this->modelClass)) {
+        if (empty($this->validationClass) || empty($this->modelClass)) {
             $class = get_class($this);
 
             throw new \InvalidArgumentException(
-                "$class::formClass and $class::modelClass must be set (with full namespaces)"
+                "$class::validationClass and $class::modelClass must be set (with full namespaces)"
             );
         }
     }
 
     /**
-     * Index action: usually displays a search page.
-     */
-    public function indexAction()
-    {
-        if ($this->fireEvent('beforeIndex') === false) {
-            return false;
-        }
-
-        $this->persistent->searchParams = null;
-        $this->form = new $this->{'formClass'}();
-        $this->view->form = $this->form;
-
-        return $this->fireEvent('afterIndex');
-    }
-
-    /**
-     * Display paged search results.
+     * Return paged search results.
      *
      * @return bool
      */
-    public function searchAction()
+    public function search()
     {
         if ($this->fireEvent('beforeSearch') === false) {
             return false;
@@ -98,81 +93,48 @@ class CrudController extends Controller
 
         /** @var string|object $modelClass */
         $modelClass = $this->modelClass;
-        $pageNumber = 1;
+        $query      = $this->getSearchQuery();
+        $models     = $modelClass::find($query->getParams());
 
-        if ($this->request->isPost()) {
-            $query = Criteria::fromInput($this->di, $modelClass, $this->request->getPost());
-            $this->persistent->searchParams = $query->getParams();
-        } else {
-            $pageNumber = $this->request->getQuery('page', 'int');
-        }
-
-        $parameters = [];
-
-        if ($this->persistent->searchParams) {
-            $parameters = $this->persistent->searchParams;
-        }
-
-        $results = $modelClass::find($parameters);
-
-        if (!count($results) && $this->fireEvent('onSearchNotFound') === false) {
+        if (!count($models) && $this->fireEvent('onResultsNotFound') === false) {
             return false;
         }
 
-        $paginator = new Paginator(array(
-            "data"  => $results,
-            "limit" => $this->pageLimit,
-            "page"  => $pageNumber
-        ));
+        $paginator = new Paginator([
+            "data"  => $models,
+            "limit" => $this->request->getQuery('limit', 'int', $this->pageLimit),
+            "page"  => $this->request->getQuery('page', 'int', 1),
+        ]);
 
-        $this->view->page = $paginator->getPaginate();
+        $this->results = $paginator->getPaginate()->items;
 
         return $this->fireEvent('afterSearch');
     }
 
     /**
-     * Displays a form for creating/editing a model.
+     * Read a result by ID.
      *
-     * @param mixed|null $id
+     * @param mixed $id
      *
      * @return bool
      */
-    public function editAction($id = null)
+    public function read($id)
     {
-        if ($this->fireEvent('beforeEdit') === false) {
+        if ($this->fireEvent('beforeRead') === false) {
             return false;
         }
 
-        if (!$this->request->isPost()) {
-            /** @var string|object $modelClass */
-            $modelClass = $this->modelClass;
+        /** @var string|object $modelClass */
+        $modelClass = $this->modelClass;
+        $model      = $modelClass::findFirstById($id);
 
-            if (!is_null($id)) {
-                if ($this->fireEvent('beforeEditExisting') === false) {
-                    return false;
-                }
-
-                $this->model = $modelClass::findFirstById($id);
-
-                if (!$this->model) {
-                    return $this->fireEvent('onEditNotFound');
-                }
-
-                $this->form = new $this->{'formClass'}($this->model, ['edit' => true]);
-            } else {
-                if ($this->fireEvent('beforeEditNew') === false) {
-                    return false;
-                }
-
-                $this->model    = new $modelClass();
-                $this->form     = new $this->{'formClass'}(null, ['edit' => true]);
-            }
-
-            $this->view->form   = $this->form;
-            $this->view->model  = $this->model;
+        if (!$model && $this->fireEvent('onResultsNotFound') === false) {
+            return false;
         }
 
-        return $this->fireEvent('afterEdit');
+        $this->model = $model;
+
+        return $this->fireEvent('afterRead');
     }
 
     /**
@@ -182,17 +144,14 @@ class CrudController extends Controller
      *
      * @return bool
      */
-    public function saveAction($id = null)
+    public function save($id = null)
     {
         if ($this->fireEvent('beforeSave') === false) {
             return false;
         }
 
-        if (!$this->request->isPost()) {
-            return $this->fireEvent('onSaveNotPostRequest');
-        }
-
-        $this->model = new $this->{'modelClass'}();
+        $this->model        = new $this->{'modelClass'}();
+        $this->validation   = new $this->{'validationClass'}();
 
         if (!is_null($id)) {
             if ($this->fireEvent('beforeSaveExisting') === false) {
@@ -206,26 +165,20 @@ class CrudController extends Controller
             if (!$this->model) {
                 return $this->fireEvent('onSaveNotFound');
             }
-
-            $this->form = new $this->{'formClass'}($this->model, ['edit' => true]);
         } else {
             if ($this->fireEvent('beforeSaveNew') === false) {
                 return false;
             }
-
-            $this->form = new $this->{'formClass'}(null, ['edit' => true]);
         }
 
-        $this->view->form   = $this->form;
-        $this->view->model  = $this->model;
-        $data               = $this->request->getPost();
+        $data = $this->getRequestData();
 
         if ($this->fireEvent('beforeValidation') === false) {
             return false;
         }
 
-        if (!$this->form->isValid($data, $this->model)) {
-            return $this->fireEvent('onFormValidationFails');
+        if (!$this->validation->validate($data)) {
+            return $this->fireEvent('onValidationFails');
         }
 
         if ($this->fireEvent('afterValidation') === false) {
@@ -235,8 +188,6 @@ class CrudController extends Controller
         if ($this->model->save() == false) {
             return $this->fireEvent('onSaveFails');
         }
-
-        $this->form->clear();
 
         return $this->fireEvent('afterSave');
     }
@@ -248,7 +199,7 @@ class CrudController extends Controller
      *
      * @return bool
      */
-    public function deleteAction($id)
+    public function delete($id)
     {
         if ($this->fireEvent('beforeDelete') === false) {
             return false;
@@ -259,7 +210,7 @@ class CrudController extends Controller
         $this->model    = $modelClass::findFirstById($id);
 
         if (!$this->model) {
-            return $this->fireEvent('onDeleteNotFound');
+            return $this->fireEvent('onResultsNotFound');
         }
 
         if (!$this->model->delete()) {
@@ -278,7 +229,7 @@ class CrudController extends Controller
     {
         if (!($this->_eventsManager instanceof EventsManager)) {
             $eventsManager = new EventsManager();
-            $eventsManager->attach('crud', $this);
+            $eventsManager->attach('microController', $this);
             $this->setEventsManager($eventsManager);
         }
 
@@ -286,7 +237,7 @@ class CrudController extends Controller
     }
 
     /**
-     * Fire a CRUD event by name.
+     * Fire a controller event by name.
      *
      * @param string $event
      *
@@ -294,7 +245,7 @@ class CrudController extends Controller
      */
     public function fireEvent($event)
     {
-        return $this->getEventsManager()->fire("crud:$event", $this);
+        return $this->getEventsManager()->fire("microController:$event", $this);
     }
 
     /**
@@ -305,61 +256,19 @@ class CrudController extends Controller
     public function onResultsNotFound()
     {
         $this->flash->notice('No results found');
-        return $this->forward($this->router->getControllerName() . '/index');
+        return false;
     }
 
     /**
-     * Search results not found event.
+     * On validation fails event.
      *
      * @return bool
      */
-    public function onSearchNotFound()
+    public function onValidationFails()
     {
-        return $this->onResultsNotFound();
-    }
-
-    /**
-     * Edit model not found event.
-     *
-     * @return bool
-     */
-    public function onEditNotFound()
-    {
-        return $this->onResultsNotFound();
-    }
-
-    /**
-     * Edit results not found event.
-     *
-     * @return bool
-     */
-    public function onSaveNotFound()
-    {
-        return $this->onResultsNotFound();
-    }
-
-    /**
-     * Save without post request.
-     *
-     * @return bool
-     */
-    public function onSaveNotPostRequest()
-    {
-        return $this->forward($this->router->getControllerName() . '/index');
-    }
-
-    /**
-     * On form validation fails event.
-     *
-     * @return bool
-     */
-    public function onFormValidationFails()
-    {
-        foreach ($this->form->getMessages() as $message) {
+        foreach ($this->validation->getMessages() as $message) {
             $this->flash->error($message);
         }
-
-        return $this->forward($this->router->getControllerName() . '/edit');
     }
 
     /**
@@ -372,8 +281,6 @@ class CrudController extends Controller
         foreach ($this->model->getMessages() as $message) {
             $this->flash->error($message);
         }
-
-        return $this->forward($this->router->getControllerName() . '/edit/' . $this->model->id);
     }
 
     /**
@@ -382,17 +289,6 @@ class CrudController extends Controller
     public function afterSave()
     {
         $this->flash->success('Item saved successfully');
-        $this->forward($this->router->getControllerName() . '/index');
-    }
-
-    /**
-     * Delete not found event.
-     *
-     * @return bool
-     */
-    public function onDeleteNotFound()
-    {
-        return $this->onResultsNotFound();
     }
 
     /**
@@ -405,8 +301,6 @@ class CrudController extends Controller
         foreach ($this->model->getMessages() as $message) {
             $this->flash->error($message);
         }
-
-        return $this->forward($this->router->getControllerName() . '/edit/' . $this->model->id);
     }
 
     /**
@@ -415,7 +309,6 @@ class CrudController extends Controller
     public function afterDelete()
     {
         $this->flash->success('Item was deleted');
-        $this->forward($this->router->getControllerName() . '/index');
     }
 
     /**
@@ -452,4 +345,31 @@ class CrudController extends Controller
         return $this;
     }
 
+    /**
+     * Get the request data.
+     *
+     * @return array
+     */
+    protected function getRequestData()
+    {
+        if ($data = $this->request->getJsonRawBody(true)) {
+            return $data;
+        }
+
+        if ($this->request->isPut()) {
+            return $this->request->getPut();
+        }
+
+        return $this->request->get();
+    }
+
+    /**
+     * Get the search query.
+     *
+     * @return Criteria
+     */
+    protected function getSearchQuery()
+    {
+        return Criteria::fromInput($this->di, $this->modelClass, $this->request->getQuery());
+    }
 }
