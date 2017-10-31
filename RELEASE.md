@@ -9,6 +9,9 @@
 ### 0.2.1
 * Moved session ini settings to Jwt::start() to prevent session_start() error.
 
+### 0.2.3
+* Added "=!" support to Criteria to allow queries like "foo=!bar&baz[]=!qux".
+
 ## 0.1
 
 ### 0.1.3
