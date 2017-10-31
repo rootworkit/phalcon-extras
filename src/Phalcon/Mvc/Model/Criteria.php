@@ -66,18 +66,26 @@ class Criteria extends \Phalcon\Mvc\Model\Criteria
                         }
 
                         if ($dataTypes[$attribute] == Column::TYPE_VARCHAR) {
-                            /**
-                             * For varchar types we use LIKE operator
-                             */
-                            $conditions[] = "[$field] LIKE :$field:";
+                            // For varchar types we use LIKE operator
+                            if (strpos($value, '!') === 0) { // Handle "not equal"
+                                $conditions[] = "[$field] NOT LIKE :$field:";
+                                $value = substr($value, 1);
+                            } else {
+                                $conditions[] = "[$field] LIKE :$field:";
+                            }
+
                             $bind[$field] = "%$value%";
                             continue;
                         }
 
-                        /**
-                         * For the rest of data types we use a plain = operator
-                         */
-                        $conditions[] = "[$field] = :$field:";
+                        // For the rest of data types we use a plain = or != operators
+                        if (strpos($value, '!') === 0) { // Handle "not equal"
+                            $conditions[] = "[$field] != :$field:";
+                            $value = substr($value, 1);
+                        } else {
+                            $conditions[] = "[$field] = :$field:";
+                        }
+
                         $bind[$field] = $value;
                     }
                 }
