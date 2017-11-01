@@ -80,7 +80,7 @@ class Criteria extends \Phalcon\Mvc\Model\Criteria
 
                         // For the rest of data types we use a plain = or != operators
                         if (strpos($value, '!') === 0) { // Handle "not equal"
-                            $conditions[] = "[$field] != :$field:";
+                            $conditions[] = "([$field] != :$field: OR [$field] IS NULL)";
                             $value = substr($value, 1);
                         } else {
                             $conditions[] = "[$field] = :$field:";
