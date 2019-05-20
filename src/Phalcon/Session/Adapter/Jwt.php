@@ -91,7 +91,6 @@ class Jwt extends Adapter implements AdapterInterface, InjectionAwareInterface
         }
 
         $options = array_merge($this->defaultOptions, $options);
-        $this->setName($options['name']);
 
         parent::__construct($options);
     }
