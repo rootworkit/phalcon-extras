@@ -1,5 +1,10 @@
 # Release Notes
 
+## 0.3
+
+### 0.3.0
+* Phalcon 3 support.
+
 ## 0.2
 
 ### 0.2.0
